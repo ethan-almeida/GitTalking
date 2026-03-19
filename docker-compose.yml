@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      # This maps your local db folder to the docker init folder
+      # It automatically runs schema.sql then seed.sql on first startup
+      - ./db:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data # Persists data
+
+volumes:
+  postgres_data:
