@@ -1,4 +1,6 @@
 import pool from '../lib/db';
+import Link from 'next/link';
+import CreateChannelForm from './CreateChannelForm';
 
 interface Channel {
   id: string;
@@ -18,11 +20,15 @@ export default async function Home(){
 
     return (
     <main className="flex flex-col items-center justify-center min-h-screen p-8">
-            <div className="text-center mb-10">
+      <div className="text-center mb-10">
         <h1 className="text-4xl font-bold mb-4">Programming Q&A Tool</h1>
         <p className="text-lg text-gray-600">
           A channel-based system for programming questions and threaded discussion.
         </p>
+      </div>
+
+      <div className="w-full max-w-2xl mb-8">
+        <CreateChannelForm />
       </div>
 
       <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-6">
@@ -33,11 +39,13 @@ export default async function Home(){
         ) : (
           <ul className="space-y-4">
             {channels.map((channel) => (
-              <li key={channel.id} className="border p-4 rounded hover:bg-gray-50 transition-colors cursor-pointer">
+              <li key={channel.id} className="border p-4 rounded hover:bg-gray-50 transition-colors">
+                <Link href={`/channels/${channel.id}`}>
                 <h3 className="font-bold text-xl text-blue-700">{channel.name}</h3>
                 <p className="text-gray-600 mt-1">
                   {channel.description || 'No description available.'}
                 </p>
+                </Link>
               </li>
             ))}
           </ul>
