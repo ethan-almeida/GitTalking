@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import pool from "../../../lib/db";
 import CreatePostForm from "./CreatePostForm";
+import Link from "next/link";
 
 interface Channel {
     id: string;
@@ -53,9 +54,11 @@ export default async function channel_page({params}: {params: Promise<{id: strin
             </div>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="bg-white p-6 rounded shadow hover:shadow-md transition cursor-pointer">
-                <h2 className="text-xl font-semibold text-blue-800">{post.title}</h2>
-                <p className="text-gray-700 mt-2 line-clamp-2">{post.body}</p>
+              <div key={post.id} className="bg-white p-6 rounded shadow hover:shadow-md transition">
+                <Link href={`/posts/${post.id}`}>
+                  <h2 className="text-xl font-semibold text-blue-800">{post.title}</h2>
+                  <p className="text-gray-700 mt-2 line-clamp-2">{post.body}</p>
+                </Link>
                 <div className="text-xs text-gray-400 mt-4">
                   Posted: {new Date(post.created_at).toLocaleDateString()}
                 </div>
