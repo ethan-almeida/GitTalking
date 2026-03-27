@@ -10,7 +10,6 @@ interface Channel {
   description: string | null;
 }
 
-
 export async function vote(targetType: 'post' | 'reply', targetId: string, value: 1 | -1, currentPath: string) {
   const userResult = await pool.query('SELECT id FROM users LIMIT 1');
   const userId = userResult.rows[0]?.id;
@@ -62,6 +61,10 @@ export default async function Home(){
         <p className="text-lg text-gray-600">
           A channel-based system for programming questions and threaded discussion.
         </p>
+
+        <Link href="/search" className="text-blue-600 hover:underline ml-4">
+          Search
+        </Link>
       </div>
 
       <div className="w-full max-w-2xl mb-8">

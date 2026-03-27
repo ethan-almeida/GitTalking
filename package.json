@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "jose": "^6.2.2",
     "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0"
   }
 }
