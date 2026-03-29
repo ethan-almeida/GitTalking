@@ -3,6 +3,7 @@ import Link from 'next/link';
 import CreateChannelForm from './CreateChannelForm';
 import { revalidatePath } from 'next/cache';
 import VoteButtons from '../components/VoteButtons';
+import { getCurrentUser } from '@/lib/auth/session';
 
 interface Channel {
   id: string;
@@ -46,6 +47,7 @@ export async function vote(targetType: 'post' | 'reply', targetId: string, value
 
 export default async function Home(){
   let channels: Channel[] = [];
+  const user = await getCurrentUser();
 
   try {
     const result = await pool.query('SELECT * FROM channels');
@@ -68,11 +70,17 @@ export default async function Home(){
       </div>
 
       <div className="w-full max-w-2xl mb-8">
-        <CreateChannelForm />
+       {user ? (
+         <CreateChannelForm />
+       ) : (
+         <p className="text-center text-gray-500 bg-white p-4 rounded shadow">
+           <Link href="/login" className="text-blue-600 hover:underline">Log in</Link> to create channels.
+         </p>
+       )}
       </div>
 
       <div className="w-full max-w-2xl bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Available Channels</h2>
+        <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-gray-900">Available Channels</h2>
         
         {channels.length === 0 ? (
           <p className="text-gray-500">No channels found. Check your database seed data.</p>

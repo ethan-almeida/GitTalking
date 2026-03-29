@@ -15,7 +15,6 @@ export async function login(formData: FormData) {
   }
 
   try {
-    // 1. Find user
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
@@ -24,7 +23,6 @@ export async function login(formData: FormData) {
       return;
     }
 
-    // 2. Verify password
     const isValid = await verifyPassword(password, user.pass_hashed);
     
     if (!isValid) {
@@ -32,7 +30,6 @@ export async function login(formData: FormData) {
       return;
     }
 
-    // 3. Create Session
     await createSession(user.id, user.role);
 
   } catch (error) {

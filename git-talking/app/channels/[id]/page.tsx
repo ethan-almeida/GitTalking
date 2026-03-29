@@ -15,6 +15,7 @@ interface Post {
     body: string;
     created_at: string;
     author_id: string;
+    author_name: string;
 }
 
 export default async function channel_page({params}: {params: Promise<{id: string}>}){
@@ -22,7 +23,14 @@ export default async function channel_page({params}: {params: Promise<{id: strin
     const channel_id = id;
     const channel_result = await pool.query('SELECT * FROM channels WHERE id=$1', [channel_id]);
     const channel: Channel | undefined = channel_result.rows[0];
-    const posts_result = await pool.query('SELECT * FROM posts WHERE channel_id = $1 ORDER BY created_at DESC', [channel_id]);
+    const posts_result = await pool.query(
+    `SELECT p.*, u.display_name as author_name 
+     FROM posts p 
+     JOIN users u ON p.author_id = u.id 
+     WHERE p.channel_id = $1 
+     ORDER BY p.created_at DESC`, 
+    [channel_id]
+    );
     const posts: Post[] = posts_result.rows;
 
     if (!channel){
@@ -60,6 +68,10 @@ export default async function channel_page({params}: {params: Promise<{id: strin
                   <p className="text-gray-700 mt-2 line-clamp-2">{post.body}</p>
                 </Link>
                 <div className="text-xs text-gray-400 mt-4">
+                  <span className="font-semibold text-gray-600">Posted by: {post.author_name || 'Unknown'}</span>
+
+                  <span className="mx-2">•</span>
+
                   Posted: {new Date(post.created_at).toLocaleDateString()}
                 </div>
               </div>

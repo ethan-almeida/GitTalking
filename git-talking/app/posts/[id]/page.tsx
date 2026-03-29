@@ -2,12 +2,14 @@ import pool from '../../../lib/db';
 import Link from 'next/link';
 import ReplyForm from './ReplyForm';
 import VoteButtons from '../../../components/VoteButtons';
+import { getCurrentUser } from '@/lib/auth/session';
 
 interface Reply {
   id: string;
   post_id: string;
   body: string;
   author_id: string;
+  author_name: string;
   created_at: string;
   parent_reply_id: string | null;
   children: Reply[];
@@ -50,6 +52,8 @@ function ReplyItem({ reply, currentPath }: { reply: Reply, currentPath: string }
         <div className="flex-1">
           <p className="text-gray-800">{reply.body}</p>
           <div className="text-xs text-gray-500 mt-2">
+            <span className="font-semibold text-gray-700">{reply.author_name || 'Unknown'}</span>
+            <span className="mx-2">•</span>
             <span>{new Date(reply.created_at).toLocaleString()}</span>
           </div>
         </div>
@@ -68,6 +72,7 @@ function ReplyItem({ reply, currentPath }: { reply: Reply, currentPath: string }
 
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
   const { id } = await params;
   const postId = id;
   const currentPath = `/posts/${postId}`; 
@@ -86,11 +91,12 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   }
 
   const repliesResult = await pool.query(`
-    SELECT r.*, COALESCE(SUM(v.value), 0) as score 
+    SELECT r.*, u.display_name as author_name, COALESCE(SUM(v.value), 0) as score 
     FROM replies r 
+    JOIN users u ON r.author_id = u.id
     LEFT JOIN votes v ON v.target_type = 'reply' AND v.target_id = r.id 
     WHERE r.post_id = $1 
-    GROUP BY r.id 
+    GROUP BY r.id, u.id
     ORDER BY r.created_at ASC
   `, [postId]);
 
@@ -122,8 +128,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="mb-6 bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Leave a Reply</h3>
-          <ReplyForm postId={post.id} />
+          <h3 className="font-semibold mb-2 text-gray-900">Leave a Reply</h3>
+          {user ? (
+            <ReplyForm postId={post.id} />
+          ) : (
+            <p className="text-gray-500">
+              <Link href="/login" className="text-blue-600 hover:underline">Log in</Link> to reply.
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">

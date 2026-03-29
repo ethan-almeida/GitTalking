@@ -2,11 +2,17 @@
 
 import pool from '../../../lib/db';
 import { revalidatePath } from 'next/cache';
+import { getCurrentUser } from '@/lib/auth/session';
 
 export async function createReply(formData: FormData) {
     const body = formData.get('body') as string;
     const postId = formData.get('postId') as string;
     const parentReplyId = formData.get('parentReplyId') as string | null;
+    const user = await getCurrentUser();
+
+    if (!user){
+        console.error('must be logged into reply');
+    }
 
     if (!body || body.trim() === '') {
         console.error('Body is required');
@@ -14,16 +20,9 @@ export async function createReply(formData: FormData) {
     }
 
     try {
-        const userResult = await pool.query('SELECT id FROM users LIMIT 1');
-        const authorId = userResult.rows[0]?.id;
-        if (!authorId) {
-            console.error('No user found');
-            return;
-        }
-
         await pool.query(
             'INSERT INTO replies (post_id, parent_reply_id, author_id, body) VALUES ($1, $2, $3, $4)',
-            [postId, parentReplyId || null, authorId, body]
+            [postId, parentReplyId || null, user.id, body]
         );
         revalidatePath(`/posts/${postId}`);
         
