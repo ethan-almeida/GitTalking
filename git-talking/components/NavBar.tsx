@@ -19,6 +19,12 @@ export default async function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-3">
+              {user.role === 'admin' && (
+                <Link href="/admin" className="text-red-600 hover:underline font-semibold">
+                  Admin
+                </Link>
+              )}
+
               <span className="text-sm text-gray-700 font-medium">
                 Welcome, {user.display_name}
               </span>
