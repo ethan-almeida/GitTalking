@@ -44,7 +44,7 @@ export default function CreatePostForm({channel_id}: CreatePostFormProps){
           type="file"
           name="image"
           id="image"
-          accept="image/png, image/jpeg, image/jpg, image/webp"
+          accept="image/png, image/jpeg, image/jpg, image/gif"
           className="block w-full text-sm text-gray-500 
                      file:mr-4 file:py-2 file:px-4
                      file:rounded file:border-0

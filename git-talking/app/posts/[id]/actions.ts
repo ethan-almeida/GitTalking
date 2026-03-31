@@ -2,16 +2,20 @@
 
 import pool from '../../../lib/db';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentUser } from '../../../lib/auth/session';
+import fs from 'fs';
+import path from 'path';
 
 export async function createReply(formData: FormData) {
     const body = formData.get('body') as string;
     const postId = formData.get('postId') as string;
     const parentReplyId = formData.get('parentReplyId') as string | null;
+    const image = formData.get('image') as File | null; 
     const user = await getCurrentUser();
 
-    if (!user){
-        console.error('must be logged into reply');
+    if (!user) {
+        console.error("Must be logged in to reply");
+        return;
     }
 
     if (!body || body.trim() === '') {
@@ -19,11 +23,51 @@ export async function createReply(formData: FormData) {
         return;
     }
 
+    let imagePath: string | null = null;
+    if (image && image.size > 0) {
+        const MAX_SIZE = 5 * 1024 * 1024;
+        if (image.size > MAX_SIZE) {
+            console.error('File size exceeds 5MB');
+            return;
+        }
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+        if (!validTypes.includes(image.type)) {
+            console.error('Invalid file type');
+            return;
+        }
+
+        try {
+            const buffer = Buffer.from(await image.arrayBuffer());
+            const filename = `${Date.now()}-${image.name.replace(/\s/g, '_')}`;
+            const uploadDir = path.join(process.cwd(), 'public/uploads');
+
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            fs.writeFileSync(path.join(uploadDir, filename), buffer);
+            imagePath = `/uploads/${filename}`;
+        } catch (err) {
+            console.error("Error saving reply image:", err);
+            return;
+        }
+    }
+
     try {
-        await pool.query(
-            'INSERT INTO replies (post_id, parent_reply_id, author_id, body) VALUES ($1, $2, $3, $4)',
+        const replyResult = await pool.query(
+            'INSERT INTO replies (post_id, parent_reply_id, author_id, body) VALUES ($1, $2, $3, $4) RETURNING id',
             [postId, parentReplyId || null, user.id, body]
         );
+
+        const replyId = replyResult.rows[0].id;
+        if (imagePath) {
+            await pool.query(
+                'INSERT INTO attachments (target_type, target_id, mime_type, size_bytes, file_path) VALUES ($1, $2, $3, $4, $5)',
+                ['reply', replyId, image!.type, image!.size, imagePath]
+            );
+        }
+
         revalidatePath(`/posts/${postId}`);
         
     } catch (error) {

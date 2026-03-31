@@ -32,6 +32,15 @@ export default function ReplyForm({ postId, parentReplyId = null }: ReplyFormPro
         rows={2}
         placeholder="Write a reply..."
       />
+
+      <div className="my-2">
+        <input 
+          type="file" 
+          name="image" 
+          accept="image/png, image/jpeg, image/jpg, image/gif"
+          className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+      </div>
       
       <div className="flex gap-2 mt-1">
         <button 

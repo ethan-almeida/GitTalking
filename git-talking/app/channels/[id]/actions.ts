@@ -31,7 +31,7 @@ export async function create_post(form_data: FormData){
             return;
         }
 
-        const valid_imgs = ['image/png', 'image/jpeg', 'image/jpg'];
+        const valid_imgs = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
         if (!valid_imgs.includes(img.type)){
             console.error('this image is not compatible, pls use PNG, JPEG or JPG formats');
             return; 

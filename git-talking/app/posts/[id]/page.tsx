@@ -5,6 +5,13 @@ import VoteButtons from '../../../components/VoteButtons';
 import { getCurrentUser } from '@/lib/auth/session';
 import ImageModal from '@/components/ImageModal';
 
+interface Attachment {
+  id: string;
+  file_path: string;
+  mime_type: string;
+  target_id: string;
+}
+
 interface Reply {
   id: string;
   post_id: string;
@@ -15,12 +22,6 @@ interface Reply {
   parent_reply_id: string | null;
   children: Reply[];
   score: number; 
-}
-
-interface Attachment {
-  id: string;
-  file_path: string;
-  mime_type: string;
 }
 
 function buildReplyTree(replies: Reply[]): Reply[] {
@@ -45,7 +46,9 @@ function buildReplyTree(replies: Reply[]): Reply[] {
   return roots;
 }
 
-function ReplyItem({ reply, currentPath }: { reply: Reply, currentPath: string }) {
+function ReplyItem({ reply, currentPath, replyAttachments }: { reply: Reply, currentPath: string, replyAttachments: Attachment[] }) {
+  const my_attachments = replyAttachments.filter(att => att.target_id === reply.id);
+
   return (
     <div className="ml-4 mt-4 border-l-2 border-gray-200 pl-4">
       <div className="bg-gray-50 p-3 rounded flex items-start gap-2">
@@ -63,6 +66,14 @@ function ReplyItem({ reply, currentPath }: { reply: Reply, currentPath: string }
             <span className="mx-2">•</span>
             <span>{new Date(reply.created_at).toLocaleString()}</span>
           </div>
+
+          {my_attachments.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {my_attachments.map((att) => (
+                <ImageModal key={att.id} src={att.file_path} alt="Reply attachment" />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -70,19 +81,26 @@ function ReplyItem({ reply, currentPath }: { reply: Reply, currentPath: string }
 
       {reply.children.length > 0 && (
         <div className="mt-2">
-          {reply.children.map(child => <ReplyItem key={child.id} reply={child} currentPath={currentPath} />)}
+          {reply.children.map(child => 
+            <ReplyItem 
+              key={child.id} 
+              reply={child} 
+              currentPath={currentPath} 
+              replyAttachments={replyAttachments} 
+            />
+          )}
         </div>
       )}
     </div>
   );
 }
 
-
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   const { id } = await params;
   const postId = id;
   const currentPath = `/posts/${postId}`; 
+
   const postResult = await pool.query(`
     SELECT p.*, COALESCE(SUM(v.value), 0) as score 
     FROM posts p 
@@ -91,16 +109,17 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     GROUP BY p.id
   `, [postId]);
 
-  const attach_result = await pool.query(
-    'SELECT * FROM attachments WHERE target_type = $1 AND target_id = $2',
-    ['post', postId]
-  );
-  const attachments: Attachment[] = attach_result.rows as Attachment[];  
   const post = postResult.rows[0];
 
   if (!post) {
     return <div className="p-8 text-center text-red-500">Post not found.</div>;
   }
+
+  const attach_result = await pool.query(
+    'SELECT * FROM attachments WHERE target_type = $1 AND target_id = $2',
+    ['post', postId]
+  );
+  const attachments: Attachment[] = attach_result.rows as Attachment[];  
 
   const repliesResult = await pool.query(`
     SELECT r.*, u.display_name as author_name, COALESCE(SUM(v.value), 0) as score 
@@ -112,14 +131,21 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     ORDER BY r.created_at ASC
   `, [postId]);
 
-  const replyTree = buildReplyTree(repliesResult.rows);
+  const replies: Reply[] = repliesResult.rows as Reply[];
+  const replyTree = buildReplyTree(replies);
+
+  const replyAttachResult = await pool.query(
+    "SELECT * FROM attachments WHERE target_type = 'reply' AND target_id IN (SELECT id FROM replies WHERE post_id = $1)",
+    [postId]
+  );
+  const replyAttachments: Attachment[] = replyAttachResult.rows as Attachment[];
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-3xl mx-auto">
         
         <Link href={`/channels/${post.channel_id}`} className="text-blue-600 hover:underline mb-4 inline-block">
-          Back to Channel
+          ← Back to Channel
         </Link>
 
         <div className="bg-white p-6 rounded shadow mb-6 flex gap-4">
@@ -133,6 +159,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
             <p className="text-gray-700 text-lg">{post.body}</p>
+            
             {attachments.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {attachments.map((att) => (
@@ -140,8 +167,6 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
                 ))}
               </div>
             )}
-
-
 
             <div className="mt-4 text-sm text-gray-500">
               Posted: {new Date(post.created_at).toLocaleString()}
@@ -165,7 +190,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           {replyTree.length === 0 ? (
             <p className="text-gray-500">No replies yet.</p>
           ) : (
-            replyTree.map(reply => <ReplyItem key={reply.id} reply={reply} currentPath={currentPath} />)
+            replyTree.map(reply => 
+              <ReplyItem 
+                key={reply.id} 
+                reply={reply} 
+                currentPath={currentPath} 
+                replyAttachments={replyAttachments}
+              />
+            )
           )}
         </div>
 
