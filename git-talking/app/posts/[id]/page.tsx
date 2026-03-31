@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ReplyForm from './ReplyForm';
 import VoteButtons from '../../../components/VoteButtons';
 import { getCurrentUser } from '@/lib/auth/session';
+import ImageModal from '@/components/ImageModal';
 
 interface Reply {
   id: string;
@@ -14,6 +15,12 @@ interface Reply {
   parent_reply_id: string | null;
   children: Reply[];
   score: number; 
+}
+
+interface Attachment {
+  id: string;
+  file_path: string;
+  mime_type: string;
 }
 
 function buildReplyTree(replies: Reply[]): Reply[] {
@@ -83,7 +90,12 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     WHERE p.id = $1 
     GROUP BY p.id
   `, [postId]);
-  
+
+  const attach_result = await pool.query(
+    'SELECT * FROM attachments WHERE target_type = $1 AND target_id = $2',
+    ['post', postId]
+  );
+  const attachments: Attachment[] = attach_result.rows as Attachment[];  
   const post = postResult.rows[0];
 
   if (!post) {
@@ -121,6 +133,16 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
             <p className="text-gray-700 text-lg">{post.body}</p>
+            {attachments.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {attachments.map((att) => (
+                  <ImageModal key={att.id} src={att.file_path} alt="Attachment" />
+                ))}
+              </div>
+            )}
+
+
+
             <div className="mt-4 text-sm text-gray-500">
               Posted: {new Date(post.created_at).toLocaleString()}
             </div>
