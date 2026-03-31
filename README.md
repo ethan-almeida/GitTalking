@@ -43,16 +43,20 @@ Git-Talking/
 # Steps to build and run
 
 - Make sure you have Docker Desktop and Docker Compose installed. (I developed this using Docker Desktop).
-- Install NodeJS if you haven't already as such:-
-  ```bash
-  npm install
-  ```
-
+  
 - clone the repository
 ```bash
 git clone https://github.com/ethan-almeida/GitTalking.git
 cd GitTalking
 ```
+
+- Install NodeJS if you haven't already as such:-
+  ```bash
+  cd git-talking
+  npm install
+  ```
+
+
 
 - create a .env file and place it in in git-talking/ NOT Git-Talking/. Make sure the following variables are in the .env file:-
 ```env
@@ -64,9 +68,10 @@ DB_PORT=
 SESSION_SECRET=
 ```
 
-- If using Docker (which let's be honest, you probably are), run the following commands :-
+- If using Docker (which let's be honest, you probably are), run the following commands to start the backend:-
 
 ```bash
+cd ..
 docker compose up --build #this command is for actually building the containers
 docker compose down -v #to delete the contents (or volumes) of the databases
 docker compose down #to delete the containers related to the project
@@ -74,6 +79,7 @@ docker compose down #to delete the containers related to the project
 
 - To actually run the project and see some beautiful stuff on your screen:-
 ```bash
+cd ~/Git-Talking
 docker compose up  #you can add a --build flag if you want to do it from scratch, make sure to run this from Git-Talking/ not git-talking/
 cd git-talking
 npm run dev #PLEASE MAKE SURE TO RUN THIS FROM git-talking/ NOT Git-Talking/
