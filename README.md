@@ -50,14 +50,6 @@ git clone https://github.com/ethan-almeida/GitTalking.git
 cd GitTalking
 ```
 
-- Install NodeJS if you haven't already as such:-
-  ```bash
-  cd git-talking
-  npm install
-  ```
-
-
-
 - create a .env file and place it in in git-talking/ NOT Git-Talking/. Make sure the following variables are in the .env file:-
 ```env
 DB_USER=
@@ -67,32 +59,34 @@ DB_NAME=
 DB_PORT=
 SESSION_SECRET=
 ```
+Note: DB_HOST must be called "db"
 
 - If using Docker (which let's be honest, you probably are), run the following commands to start the backend:-
 
 ```bash
 cd ..
 docker compose up --build #this command is for actually building the containers
-docker compose down -v #to delete the contents (or volumes) of the databases
-docker compose down #to delete the containers related to the project
 ```
 
-- To actually run the project and see some beautiful stuff on your screen:-
-```bash
-cd ~/Git-Talking
-docker compose up  #you can add a --build flag if you want to do it from scratch, make sure to run this from Git-Talking/ not git-talking/
-cd git-talking
-npm run dev #PLEASE MAKE SURE TO RUN THIS FROM git-talking/ NOT Git-Talking/
-```
 
 # Additional Details
 
 - The ports I used while developing were Port: 3000 for the frontend (this is what actually is in the URL bar), and Port:5432 to host the database on.
 - The schema I used for this database is located in the db/ folder called schema.sql (pretty obvious) as well as the seed data called seed.sql (maybe less obvious?)
-- There is an admin mode in this project which can be used to delete any posts, channels, replies. The credentials for this account are:-
-  - Email: admin@email.com
-  - Password: admin123
-
+- There is an admin mode in this project which can be used to delete any posts, channels, replies. However you will need to sign up with an account and then give it admin privileges via the Docker terminal.
+	Steps to do this:-
+	1. Open a new terminal and run the command below:-
+	```bash
+	docker exec -it git-talking-db-1 psql -U <username> -d <database_name>
+	
+	```
+	
+	2. After running you should see <database_name># on the left side, now run this command below:-
+	```sql
+	UPDATE users SET role = "admin" WHERE email = "<your-email>@email.com" #you should see UPDATE 1 as output
+	```
+	
+	3. Then run "\q" to exit the db shell and your account should now have admin privileges.
 
 # Demo Link
 - This is a link to an unlisted video recording of my project. (LINK IS NOT UP YET, INSERT ONE)
