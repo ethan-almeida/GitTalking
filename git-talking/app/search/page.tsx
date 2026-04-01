@@ -1,14 +1,18 @@
 import pool from '../../lib/db';
 import Link from 'next/link';
 
+const ITEMS_IN_PAGE = 10;
+
 export default async function SearchPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ q?: string }> 
+  searchParams: Promise<{ q?: string; page?: string }> 
 }) {
 
   const params = await searchParams;
   const query = params.q || "";
+  const curr_page = Number(params.page) || 1;
+  const offset = (curr_page-1)*ITEMS_IN_PAGE;
   let posts: any[] = [];
   let replies: any[] = [];
   let topUser: any = null;
@@ -47,26 +51,39 @@ export default async function SearchPage({
     topPost = topPostRes.rows[0];
 
     if (query.trim() !== "") {
-      const postsRes = await pool.query(
-        `SELECT p.id, p.title, p.body, c.name as channel_name 
-         FROM posts p JOIN channels c ON p.channel_id = c.id 
-         WHERE p.title ILIKE $1 OR p.body ILIKE $1`,
-        [`%${query}%`]
-      );
-      posts = postsRes.rows;
+      const postsQuery = `
+        SELECT p.id, p.title, p.body, c.name as channel_name, p.channel_id
+        FROM posts p
+        JOIN channels c ON p.channel_id = c.id
+        WHERE p.title ILIKE $1 OR p.body ILIKE $1
+        ORDER BY p.created_at DESC
+        LIMIT $2 OFFSET $3
+      `;
+      const postsResult = await pool.query(postsQuery, [`%${query}%`, ITEMS_IN_PAGE, offset]);
+      posts = postsResult.rows;
 
-      const repliesRes = await pool.query(
-        `SELECT r.id, r.body, p.title as post_title, p.id as post_id 
-         FROM replies r JOIN posts p ON r.post_id = p.id 
-         WHERE r.body ILIKE $1`,
-        [`%${query}%`]
-      );
-      replies = repliesRes.rows;
+      const repliesQuery = `
+        SELECT r.id, r.body, p.title as post_title, p.id as post_id
+        FROM replies r
+        JOIN posts p ON r.post_id = p.id
+        WHERE r.body ILIKE $1
+        ORDER BY r.created_at DESC
+        LIMIT $2 OFFSET $3
+      `;
+      const repliesResult = await pool.query(repliesQuery, [`%${query}%`, ITEMS_IN_PAGE, offset]);
+      replies = repliesResult.rows;
     }
 
   } catch (error) {
     console.error("Search error:", error);
   }
+
+  const getPageUrl = (pageNum: number) => {
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    params.set('page', pageNum.toString());
+    return `/search?${params.toString()}`;
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -121,10 +138,9 @@ export default async function SearchPage({
               </>
             ) : <p className="text-gray-500">No data</p>}
           </div>
-
         </div>
 
-        {query.trim() !== "" && (
+          {query.trim() !== "" && (
           <div className="space-y-8">
             
             <h2 className="text-2xl font-bold text-gray-800 border-b pb-2">
@@ -133,20 +149,20 @@ export default async function SearchPage({
 
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Posts ({posts.length})
+                Posts ({posts.length} on this page)
               </h3>
               {posts.length === 0 ? (
                 <p className="text-gray-500">No posts found.</p>
               ) : (
                 <ul className="space-y-4">
                   {posts.map((post) => (
-                    <li key={post.id} className="bg-white p-4 rounded shadow">
-                      <div className="text-xs text-blue-600 font-semibold mb-1">in #{post.channel_name}</div>
-                      <Link href={`/posts/${post.id}`} className="text-lg font-semibold text-gray-900 hover:underline">
-                        {post.title}
-                      </Link>
-                      <p className="text-gray-600 text-sm mt-1 line-clamp-2">{post.body}</p>
-                    </li>
+                     <li key={post.id} className="bg-white p-4 rounded shadow">
+                       <div className="text-xs text-blue-600 font-semibold mb-1">in #{post.channel_name}</div>
+                       <Link href={`/posts/${post.id}`} className="text-lg font-semibold text-gray-900 hover:underline">
+                         {post.title}
+                       </Link>
+                       <p className="text-gray-600 text-sm mt-1 line-clamp-2">{post.body}</p>
+                     </li>
                   ))}
                 </ul>
               )}
@@ -154,29 +170,50 @@ export default async function SearchPage({
 
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Replies ({replies.length})
+                Replies ({replies.length} on this page)
               </h3>
-              {replies.length === 0 ? (
+               {replies.length === 0 ? (
                 <p className="text-gray-500">No replies found.</p>
               ) : (
                 <ul className="space-y-4">
                   {replies.map((reply) => (
-                    <li key={reply.id} className="bg-white p-4 rounded shadow">
+                     <li key={reply.id} className="bg-white p-4 rounded shadow">
                        <div className="text-xs text-gray-500 mb-1">Reply to: 
                          <span className="text-blue-600 font-semibold ml-1">{reply.post_title}</span>
                        </div>
                        <p className="text-gray-800">{reply.body}</p>
                        <Link href={`/posts/${reply.post_id}`} className="text-sm text-blue-600 hover:underline mt-2 inline-block">
-                         View Context →
+                         View Context
                        </Link>
-                    </li>
+                     </li>
                   ))}
                 </ul>
               )}
             </div>
 
+            <div className="flex justify-center gap-4 mt-8 pt-4 border-t">
+              {curr_page > 1 && (
+                <Link 
+                  href={getPageUrl(curr_page - 1)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                >
+                  ← Previous Page
+                </Link>
+              )}
+              
+              {(posts.length === ITEMS_IN_PAGE || replies.length === ITEMS_IN_PAGE) && (
+                <Link 
+                  href={getPageUrl(curr_page + 1)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Next Page →
+                </Link>
+              )}
+            </div>
+
           </div>
         )}
+
 
       </div>
     </main>
