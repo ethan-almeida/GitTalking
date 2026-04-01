@@ -11,5 +11,19 @@ services:
       - ./db:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data 
 
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DB_USER: myuser
+      DB_PASSWORD: mypassword
+      DB_HOST: db 
+      DB_NAME: mydatabase
+      DB_PORT: 5432
+      SESSION_SECRET: "thisisateststring1234@#$"
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
