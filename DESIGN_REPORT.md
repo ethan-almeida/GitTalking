@@ -1,4 +1,4 @@
-##DESIGN REPORT
+**DESIGN REPORT**
 
 
 **Architecture**
