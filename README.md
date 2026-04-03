@@ -89,7 +89,7 @@ docker compose up --build #this command is for actually building the containers
 	3. Then run "\q" to exit the db shell and your account should now have admin privileges.
 
 # Demo Link
-- This is a link to an unlisted video recording of my project. (LINK IS NOT UP YET, INSERT ONE)
+- https://youtu.be/LOMSEmPQ0sI
 
   
     
