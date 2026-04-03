@@ -104,10 +104,13 @@ export async function deleteReply(replyId: string) {
 
 export async function deleteUser(userId: string) {
   try {
+    await pool.query('DELETE FROM votes WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM replies WHERE author_id = $1', [userId]);
+    await pool.query('DELETE FROM posts WHERE author_id = $1', [userId]);
     await pool.query('DELETE FROM users WHERE id = $1', [userId]);
     revalidatePath('/admin');
   } catch (error) {
-    console.error(error);
+    console.error('Failed to delete user:', error);
   }
 }
 

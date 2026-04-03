@@ -14,43 +14,39 @@ export async function createReply(formData: FormData) {
     const user = await getCurrentUser();
 
     if (!user) {
-        console.error("Must be logged in to reply");
-        return;
+        return { error: 'You must be logged in to reply.' };
     }
 
     if (!body || body.trim() === '') {
-        console.error('Body is required');
-        return;
+        return { error: 'Reply body is required.' };
     }
 
     let imagePath: string | null = null;
     if (image && image.size > 0) {
         const MAX_SIZE = 5 * 1024 * 1024;
         if (image.size > MAX_SIZE) {
-            console.error('File size exceeds 5MB');
-            return;
+            return { error: 'Image size exceeds 5MB limit.' };
         }
 
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
         if (!validTypes.includes(image.type)) {
-            console.error('Invalid file type');
-            return;
+            return { error: 'Invalid image type. Use PNG, JPG, JPEG, or GIF.' };
         }
 
         try {
             const buffer = Buffer.from(await image.arrayBuffer());
             const filename = `${Date.now()}-${image.name.replace(/\s/g, '_')}`;
-            const uploadDir = path.join(process.cwd(), 'public/uploads');
+            const uploadDir = path.join(process.cwd(), 'uploads');
 
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
 
             fs.writeFileSync(path.join(uploadDir, filename), buffer);
-            imagePath = `/uploads/${filename}`;
+            imagePath = `/api/uploads/${filename}`;
         } catch (err) {
             console.error("Error saving reply image:", err);
-            return;
+            return { error: 'Failed to save image. Please try again.' };
         }
     }
 
@@ -69,8 +65,10 @@ export async function createReply(formData: FormData) {
         }
 
         revalidatePath(`/posts/${postId}`);
+        return { success: true };
         
     } catch (error) {
         console.error('Failed to post reply:', error);
+        return { error: 'Failed to post reply. Please try again.' };
     }
 }

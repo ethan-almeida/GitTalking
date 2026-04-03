@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef, useState } from "react";
 import { create_post } from "./actions";
 
 interface CreatePostFormProps {
@@ -5,8 +8,24 @@ interface CreatePostFormProps {
 }
 
 export default function CreatePostForm({channel_id}: CreatePostFormProps){
+    const formRef = useRef<HTMLFormElement>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    async function handleSubmit(formData: FormData) {
+      setError(null);
+      const result = await create_post(formData);
+
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
+      formRef.current?.reset();
+    }
+
     return (
-    <form action={create_post} className="bg-white p-6 rounded shadow mb-6">
+    <>
+    <form ref={formRef} action={handleSubmit} className="bg-white p-6 rounded shadow mb-6">
       <input type="hidden" name="channel_id" value={channel_id} />
       
       <div className="mb-4">
@@ -62,5 +81,6 @@ export default function CreatePostForm({channel_id}: CreatePostFormProps){
         Post Question
       </button>
     </form>
+    </>
   );
 }
